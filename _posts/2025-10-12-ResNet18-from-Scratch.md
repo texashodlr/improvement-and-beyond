@@ -23,5 +23,25 @@ To implement this code you'll need:
 * Probably can just download all of your [PyTorch from the site](https://pytorch.org/get-started/locally/)
 
 ## Problem
+_Why did we do this and not just an OtS model?_
 
 ## Motivation
+Goals/Nongoals/homework metrics
+
+## High-level Design
+
+## Data Pipeline
+
+## Model Walkthrough
+
+## Training Setup
+
+## Experiments and Results
+
+## Gotchas and Debugging
+
+## Reproducibility
+
+## Further Developments
+
+## Conclusion
