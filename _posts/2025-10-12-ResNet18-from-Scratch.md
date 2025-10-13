@@ -25,19 +25,23 @@ To implement this code you'll need:
 * You'll likely get all of your [PyTorch dependencies from the site](https://pytorch.org/get-started/locally/)
 
 ## Problem
-This ResNet-18 Model design focuses on building the full infrastructure necessary for training and validating the model on the Fashion-MNIST data-set.
+Implement __ResNet-18__ from first principles, then train and evaluate it on Fashion-MNIST with a clean, single-file code path: define blocks → assemble layers → add a minimal train/test harness → plot learning curves.
 
 ## Motivation
-This problem arises from a homework problem from my _Optimization for Deep-Learning_ and I wanted to extend the homework slightly into a full post to just recap my code and more fully understand everything that I've built.
+* Turn a homework prompt into a reusable reference that I (and others) can understand at a glance.
+* Keep everything in one file to make the control flow obvious for beginners—no magic imports.
+* Reach strong accuracy on a small dataset while highlighting design trade-offs.
 
-This model aims and achieves >95% accuracy on the Fashion-MNIST data set but more importantly (to me) the code is structured into a single file which is easily comprehended to newbs.
-
-Success critieria; model acc. >95%, code is easily digestable.
+_Success criteria_: Easy-to-read code with solid accuracy on Fashion-MNIST.
 
 ## High-level Design
 As we stated above this implementation of [ResNet-18](https://arxiv.org/abs/1512.03385) _should_ be my near-direct copy and paste implementation of model as described in the paper.
 
-### Big Idea
+* BasicBlock implements residual learning with a main path (Conv-BN-ReLU-Conv-BN) and a skip path(identity or 1×1 projection).
+* ResNet18 stitches blocks into 4 stages: widths [64, 128, 256, 512] with two blocks per stage, using stride-2 in the first block of stages 2–4 to downsample.
+* A small-image stem (3×3, stride 1) plus an early maxpool (3×3, stride 2) prepares 28×28 inputs; a global average pool and a linear head produce 10 logits.
+
+### Big Idea (Residual Learning)
 __What are we doing?__ We're _doing_ [residual learning](https://en.wikipedia.org/wiki/Residual_neural_network) (_"a deep learning architecture in which the layers learn residual functions with reference to the layer inputs."_). 
 
 This means that instead of our models learning a direct mapping _H(x)_, each block learns a residual _F(x) = H(x) - x_ which then outputs _y = F(x) + x or a projected x_.
@@ -54,57 +58,59 @@ Since we're using the Fashion-MNIST data set all the images are single channel 2
 Input (1×28×28)  # grayscale
         │
         ▼
-[STEM] Conv3×3, 64, stride 1, padding 1 → BN → ReLU → Maxpool      # 64×28×28
+[STEM] Conv3×3, 64, stride 1, padding 1 → BN → ReLU → Maxpool3x3,stride2      # 64×28×28
         │
         ▼
-[LAYER1] ┌─ BasicBlock(64 → 64, stride 1) ─┐              # 64×28×28
-         └─ BasicBlock(64 → 64, stride 1) ─┘              # 64×28×28
+[LAYER1] ┌─ BasicBlock(64 → 64, stride 1) ─┐              # 64×14×14
+         └─ BasicBlock(64 → 64, stride 1) ─┘              # 64×14×14
         │
         ▼
-[LAYER2] ┌─ BasicBlock(64 → 128, stride 2)* ─┐            # 128×14×14
-         └─ BasicBlock(128 → 128, stride 1) ─┘             # 128×14×14
+[LAYER2] ┌─ BasicBlock(64 → 128, stride 2)* ─┐            # 128×7×7
+         └─ BasicBlock(128 → 128, stride 1) ─┘            # 128×7×7
         │
         ▼
-[LAYER3] ┌─ BasicBlock(128 → 256, stride 2)* ─┐           # 256×7×7
-         └─ BasicBlock(256 → 256, stride 1) ─┘             # 256×7×7
+[LAYER3] ┌─ BasicBlock(128 → 256, stride 2)* ─┐           # 256×4×4
+         └─ BasicBlock(256 → 256, stride 1)  ─┘           # 256×4×4
         │
         ▼
-[LAYER4] ┌─ BasicBlock(256 → 512, stride 2)* ─┐           # 512×4×4
-         └─ BasicBlock(512 → 512, stride 1) ─┘             # 512×4×4
+[LAYER4] ┌─ BasicBlock(256 → 512, stride 2)* ─┐           # 512×2×2
+         └─ BasicBlock(512 → 512, stride 1)  ─┘           # 512×2×2
         │
         ▼
-GlobalAvgPool (4×4 → 1×1)                                  # 512×1×1
+GlobalAvgPool (→ 1×1)                                     # 512×1×1
         │
         ▼
 FC: 512 → 10  # Fashion-MNIST classes
 ```
+_* first block in layers 2–4 uses a 1×1 projection on the skip with the same stride as the main path. (Implemented by self.shortcut inside BasicBlock.)_
+
 ### Model Components
 The below are the main _components_ that make up my ResNet-18 model.
 
-#### Stem
-This is the input frontend that turns raw images into feature maps.
-
-For our Fashion-MNIST ResNet the flow is:
-`input (x) -> 3x3 conv (stride 1, padding 1) -> BN -> ReLU -> maxpool`
-
-This _frontend_ is converting pixels to low-level edges/textures and since we're dealing with small images we can utilize a 1-stride.
-
-#### Layer or BasicBlock
-Each layer is a _BasicBlock_ and there's four layers in the model.
-
-For our model the flow of each layer is:
-` input (x) -> Conv3x3 -> BN -> ReLU -> Conv3x3 -> BN -> identity (x) -> ReLU`
-
-Where the identity is the skip portion which just feeds the input after the second BN such that output of each block/layer is: `ReLU (main path + identity)`.
-
-#### Layer Collection and Output
-Since we've got four layers, we follow a channel (width) increase of: `[64, 128, 256, 512]`, and make each layer 2 blocks deep (depth) this lets our ResNet-18 model continue to learn increasingly abstract features while shrinking spatial size to keep the compute requirements reasonable.
-
-After the four layers we leverage the 2-D Adaptive Average Pool  and terminate the model with a single fully connected linear layer to our 10 classes of fashion!
+1. _BasicBlock_
+* __Main path__: Conv3×3(stride s, out=out_channels) → BN → ReLU → Conv3×3(stride 1) → BN.
+* __Skip path__: if shapes change (s≠1 or channels differ), use 1×1 Conv + BN with the same stride; else identity.
+* __Merge__: elementwise add, then ReLU. In code: the block stores in_channels/out_channels/stride, builds conv1/conv2, and conditionally constructs self.shortcut; in forward it computes the projection on the input when needed and adds once.
+* __Why this shape logic matters__: adding tensors requires same shape; the 1×1 projection guarantees channel & spatial alignment when downsampling or widening.
+2. _ResNet18_
+* __Stem__: Conv3×3, stride 1 → BN → ReLU → MaxPool3×3, stride 2.
+* __Stages__: _make_layer(block, out_width, num_blocks, stride) constructs each stage; the first block may downsample (stride 2), subsequent blocks use stride 1. The running self.in_channels is updated after each block to keep interfaces correct.
+* __Head__: AdaptiveAvgPool2d((1,1)) → Linear(512 → 10). All of this is assembled in one class and passed img_channels=1, num_classes=10 for Fashion-MNIST.
 
 ## Data Pipeline
+* __Dataset__: Fashion-MNIST train/test splits are auto-downloaded via `torchvision.datasets.FashionMNIST`.
+* __Transforms__: currently ToTensor() only (pixel values → [0,1] floats). Consider adding normalization and light augmentation for stronger generalization.
+* __Loaders__: shuffling train, no shuffle on test; default num_workers and pin_memory (tune these for throughput).
+* _Future Improvements_: Add Normalize(mean, std) for Fashion-MNIST, modest RandomCrop(padding=2) and RandomHorizontalFlip(), and set num_workers>0, pin_memory=True when training on GPU.
 
 ## Model Walkthrough
+1. __Input → Stem__: (1×28×28) → 64×28×28 via 3×3/1 conv, BN, ReLU → _downsample_ to 64×14×14 via 3×3/2 maxpool.
+2. __Layer1__: two residual blocks at 64 channels, stride 1 (spatial stays 14×14).
+3. __Layer2__: first block stride 2 + projection → 128×7×7, then one stride-1 block.
+4. __Layer3__: stride 2 → 256×4×4, then a stride-1 block.
+5. __Layer4__: stride 2 → 512×2×2, then a stride-1 block.
+6. __Head__: global average pool to 512×1×1, flatten, fully connected layer to 10 classes.
+_All of this produces compact, increasingly abstract features while keeping compute reasonable for small grayscale images._
 
 ## Training Setup
 
