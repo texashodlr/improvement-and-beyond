@@ -113,13 +113,44 @@ The below are the main _components_ that make up my ResNet-18 model.
 _All of this produces compact, increasingly abstract features while keeping compute reasonable for small grayscale images._
 
 ## Training Setup
+* __Loss__: CrossEntropyLoss.
+* __Optimizer__: currently AdamW (decoupled weight decay), with configurable learning_rate and weight_decay. The script also includes commented snippets for SGD and for adding an explicit L2 penalty to the loss if you want “true L2” with Adam.
+* __Epoch loop__: standard model.train() → forward → compute loss → backward() → optimizer.step(). Accuracy is computed by comparing argmax logits to labels. A mirrored test() loop runs under torch.no_grad() for evaluation.
+* __Early stopping__: patience-based stopper monitors test loss; training halts after a plateau. min_delta is tied to your regularization hyperparameter for sensitivity.
+* __Plots__: two PNGs—accuracy and loss vs. epoch—are saved to the working directory.
 
-## Experiments and Results
+__Example CLI run__: `python full_resnet.py --seed 63 --epochs 10 --batch_size 256 --learning_rate 0.001 --weight_decay 0.0 --l2_lambda 0.00001`
+
+## Experiments
+Some variations of my model that I iterated with:
+* __Optimizers and Regularization__: We alternate between _vanilla-SGD_, _Adam_ and _AdamW_ for the actual runs of our model and display some generic results below:
+    * __Vanilla-SGD__: CLI `python full_resnet.py --epochs 10 --batch_size 256 --learning_rate 0.001`
+    * __Adam w/out Regularization__: CLI `python full_resnet.py --epochs 10 --batch_size 256 --learning_rate 0.001 --weight_decay 0.00001` 
+    * __AdamW w/out Regularization__: CLI `python full_resnet.py --epochs 10 --batch_size 256 --learning_rate 0.001 --weight_decay 0.00001`
+    * __Vanilla-SGD w/Regularization__: CLI `python full_resnet.py --epochs 10 --batch_size 256 --learning_rate 0.001`
+    * __Adam w/Regularization__: CLI `python full_resnet.py --epochs 10 --batch_size 256 --learning_rate 0.001 --weight_decay 0.00001` 
+    * __AdamW w/Regularization__: CLI `python full_resnet.py --epochs 10 --batch_size 256 --learning_rate 0.001 --weight_decay 0.00001`
+* __Additional Tweaking__: For a longer experimenting time I'd have like to explore an eta != 0.001 and vary epochs and batch sizes as well as weight decays, and lambdas across all iterations
+* __Simple Result with SGD__:
+
+![ResNet-18 Accuracy with SGD](2025-10-12-ResNet18-from-Scratch-images/acc.png)
+
+![ResNet-18 Loss with SGD](2025-10-12-ResNet18-from-Scratch-images/loss.png)
 
 ## Gotchas and Debugging
-
-## Reproducibility
+Some of the issues that I initially ran into:
+1. __Residual Shape Mismatches__: The skip path has to match both channels and spatial size, so projection with the 1x1 conv and BN when stride != 1 otherwise channels change. The block does this via the self.shortcut.
+2. __Stride__: Apply stride at the first conv of the block and on the _skip_ projections so the adds align.
+3. __Throughput__: Very noticeable difference training on an A4000 v. 4070M haha.... 
 
 ## Further Developments
+Based on various different blog posts I was reading in the development of this model there's several items to improve upon:
+1. Mixed Precision (AMP) would increase speeds on the my GPU(s) (like my dinky laptop 4070M)
+2. Learning-rate schedulers (cosine, multistep, onecycle).
+3. Improved stem for tiny/varied images, so removing the initial maxpool and switching to a 3x3 stride-1 stem.
+4. Checkpointing/snapshot function.
+5. Stronger/more detailed regularization via label smoothing, CutMix/MixUp, DropBlock.
+6. MultiGPU instead of my single GPU check and init.
 
 ## Conclusion
+I implemented ResNet-18 from scratch, trained it on Fashion-MNIST, and packaged the full training path into one readable file. The key insights: residual connections make deep optimization tractable; a small-image-aware stem helps on 28×28 inputs; and simple training hygiene (good regularization, clean eval, early stopping) goes a long way. From here, the most impactful upgrades are data normalization/augmentation, AdamW or SGD with a scheduler, and AMP for speed.
