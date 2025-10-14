@@ -2,7 +2,6 @@
 title: "ResNet-18 from Scratch"
 date: 2025-10-12
 ---
-# ResNet-18 from Scratch
 _Howdy!_ 
 
 This post is an explanation of my single-file full implementation of [ResNet-18](https://docs.pytorch.org/vision/main/models/generated/torchvision.models.resnet18.html) [Architecture](https://arxiv.org/abs/1512.03385) and features training over the [Fashion-MNIST](https://github.com/zalandoresearch/fashion-mnist) data set, from scratch!
@@ -133,9 +132,9 @@ Some variations of my model that I iterated with:
 * __Additional Tweaking__: For a longer experimenting time I'd have like to explore an eta != 0.001 and vary epochs and batch sizes as well as weight decays, and lambdas across all iterations
 * __Simple Result with SGD__:
 
-![ResNet-18 Accuracy with SGD](/_posts/2025-10-12-ResNet18-from-Scratch-images/acc.png)
+![ResNet-18 Accuracy with SGD](images/2025-10-12-ResNet18-from-Scratch-images/acc.png)
 
-![ResNet-18 Loss with SGD](/_posts/2025-10-12-ResNet18-from-Scratch-images/loss.png)
+![ResNet-18 Loss with SGD](images/2025-10-12-ResNet18-from-Scratch-images/loss.png)
 
 ## Gotchas and Debugging
 Some of the issues that I initially ran into:
