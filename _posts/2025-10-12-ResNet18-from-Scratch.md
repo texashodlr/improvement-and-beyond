@@ -7,7 +7,7 @@ _Howdy!_
 
 This post is an explanation of my single-file full implementation of [ResNet-18](https://docs.pytorch.org/vision/main/models/generated/torchvision.models.resnet18.html) [Architecture](https://arxiv.org/abs/1512.03385) and features training over the [Fashion-MNIST](https://github.com/zalandoresearch/fashion-mnist) data set, from scratch!
 
-The code itself: `full_resnet.py` and its purpose is to have a self-contained python script that covers all phases of model training while acting as a learning piece to deepen my own understanding of training a model.
+[The code itself](https://github.com/texashodlr/opt4dl/blob/main/1_opt4dl_code/2_assignment/full_resnet.py): `full_resnet.py` and its purpose is to have a self-contained python script that covers all phases of model training while acting as a learning piece to deepen my own understanding of training a model.
 
 ## Prerequisites
 To implement this code you'll need:
