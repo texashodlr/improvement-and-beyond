@@ -57,7 +57,7 @@ Since we're using the Fashion-MNIST data set all the images are single channel 2
 Input (1×28×28)  # grayscale
         │
         ▼
-[STEM] Conv3×3, 64, stride 1, padding 1 → BN → ReLU → Maxpool3x3,stride2      # 64×28×28
+[STEM] Conv3×3, 64, stride 1, padding 1 → BN → ReLU → Maxpool3x3,stride2      # 64×14×14
         │
         ▼
 [LAYER1] ┌─ BasicBlock(64 → 64, stride 1) ─┐              # 64×14×14
@@ -132,9 +132,9 @@ Some variations of my model that I iterated with:
 * __Additional Tweaking__: For a longer experimenting time I'd have like to explore an eta != 0.001 and vary epochs and batch sizes as well as weight decays, and lambdas across all iterations
 * __Simple Result with SGD__:
 
-![ResNet-18 Accuracy with SGD](/images/2025-10-12-ResNet18-from-Scratch-images/acc.png)
+![ResNet-18 Accuracy with SGD](/assets/images/2025-10-12-ResNet18-from-Scratch-images/acc.png)
 
-![ResNet-18 Loss with SGD](/images/2025-10-12-ResNet18-from-Scratch-images/loss.png)
+![ResNet-18 Loss with SGD](/assets/images/2025-10-12-ResNet18-from-Scratch-images/loss.png)
 
 ## Gotchas and Debugging
 Some of the issues that I initially ran into:
