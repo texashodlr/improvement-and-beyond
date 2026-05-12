@@ -1,2 +1,20 @@
-theme: minima
+title: Improvement and Beyond
+description: Projects and ideas I'm actively working on
 url: https://texashodlr.github.io/improvement-and-beyond/
+repository: texashodlr/improvement-and-beyond
+
+theme: minima
+
+# Minima social links
+github_username: texashodlr
+twitter_username: texashodlr
+
+# Build settings
+markdown: kramdown
+permalink: /:title/
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor/

@@ -35,3 +35,10 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Jekyll #
+##########
+_site/
+.jekyll-cache/
+.jekyll-metadata
+vendor/
